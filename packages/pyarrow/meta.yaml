@@ -1,9 +1,64 @@
 package:
   name: pyarrow
   version: 8.0.0
+#source:
+#  url: https://files.pythonhosted.org/packages/e2/3e/fe46e9b9bae7f8268693c5d963fb37f88a59798d0ff041dd8452d5bbf9c2/pyarrow-8.0.0.tar.gz
+#  sha256: 4a18a211ed888f1ac0b0ebcb99e2d9a3e913a481120ee9b1fe33d3fedb945d4e
+#build:
+#  ldflags: -L$(NUMPY_LIB)
+#  script: |
+#    pip install -t $HOSTSITEPACKAGES cython numpy
+#requirements:
+#  run:
+#    - numpy
+
 source:
- url: https://files.pythonhosted.org/packages/e2/3e/fe46e9b9bae7f8268693c5d963fb37f88a59798d0ff041dd8452d5bbf9c2/pyarrow-8.0.0.tar.gz
- sha256: 4a18a211ed888f1ac0b0ebcb99e2d9a3e913a481120ee9b1fe33d3fedb945d4e
+  # url: https://dlcdn.apache.org/arrow/arrow-8.0.0/apache-arrow-8.0.0.tar.gz
+  # sha256: ad9a05705117c989c116bae9ac70492fe015050e1b80fb0e38fde4b5d863aaa3
+  path: /home/whitphx/src/arrow
+
+build:
+  script: |
+    pip install -t $HOSTSITEPACKAGES -r python/requirements-build.txt
+
+    # This is the folder where we will install the Arrow libraries during
+    # development
+    mkdir dist
+
+    # We need to set some environment variables to let Arrow's build system know about our build toolchain:
+    export ARROW_HOME=$(pwd)/dist
+    export LD_LIBRARY_PATH=$(pwd)/dist/lib:$LD_LIBRARY_PATH
+
+    # Now build the Arrow C++ libraries and install them into the directory we created above (stored in $ARROW_HOME):
+    mkdir cpp/build
+    pushd cpp/build
+
+    emcmake cmake -DCMAKE_INSTALL_PREFIX=$ARROW_HOME \
+          -DARROW_SIMD_LEVEL=NONE -DARROW_RUNTIME_SIMD_LEVEL=NONE -DARROW_JEMALLOC=OFF \
+          -DCMAKE_INSTALL_LIBDIR=lib \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DARROW_PYTHON=ON \
+          -DPython3_INCLUDE_DIR=$PYTHONINCLUDE \
+          -DPython3_NumPy_INCLUDE_DIR=$PYODIDE_ROOT/packages/numpy/build/numpy-1.22.3/numpy/core/include \
+          ..
+    emmake make -j4
+    emmake make install
+    popd
+
+    # Now, build pyarrow:
+    pushd python
+    export PYARROW_WITH_PARQUET=1
+    export PYARROW_WITH_DATASET=1
+    export PYARROW_PARALLEL=4
+    # python setup.py build_ext --inplace
+    # To build a self-contained wheel (including the Arrow and Parquet C++ libraries), one can set --bundle-arrow-cpp:
+    pip install wheel  # if not installed
+    python setup.py build_ext --build-type=$ARROW_BUILD_TYPE \
+           --bundle-arrow-cpp bdist_wheel
+    popd
+requirements:
+  run:
+    - numpy
 test:
   imports:
   - pyarrow
