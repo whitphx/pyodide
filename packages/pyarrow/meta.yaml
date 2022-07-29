@@ -1,0 +1,14 @@
+package:
+  name: pyarrow
+  version: 8.0.0
+source:
+ url: https://files.pythonhosted.org/packages/e2/3e/fe46e9b9bae7f8268693c5d963fb37f88a59798d0ff041dd8452d5bbf9c2/pyarrow-8.0.0.tar.gz
+ sha256: 4a18a211ed888f1ac0b0ebcb99e2d9a3e913a481120ee9b1fe33d3fedb945d4e
+test:
+  imports:
+  - pyarrow
+about:
+  home: https://arrow.apache.org/
+  PyPI: https://pypi.org/project/pyarrow
+  summary: Python library for Apache Arrow
+  license: Apache License, Version 2.0
